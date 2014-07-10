@@ -1,0 +1,15 @@
+default = mysql
+
+<mysql>
+    host    = localhost
+    user    = username
+    pass    = password
+    db      = stocks
+</mysql>    
+
+<Pg>
+    host    = localhost
+    user    = postgres
+    pass    = password
+    db      = stocks
+</Pg>   
