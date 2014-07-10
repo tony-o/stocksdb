@@ -1,11 +1,14 @@
+#!/usr/bin/env perl
+
+use Cwd qw<abs_path>;
+use lib abs_path("$0/../../lib");
 use Modern::Perl;
 use Config::General;
 use Getopt::Long::Descriptive;
 use Try::Tiny;
-use lib '..';
 use DB::Schema;
 
-my $conf    = Config::General->new("../lib/DB/db.conf");
+my $conf    = Config::General->new(abs_path("$0/../../lib/DB/db.conf"));
 my %config  = $conf->getall;
 
 my ($opt, $usage) = describe_options(
@@ -39,7 +42,7 @@ say   "Connecting to: "
     . "\n\tpass: "    . $opt->pass 
     . "\n\thost: "    . $opt->host;
 
-my $schema = Schema->connect( "dbi:". get_db_type( $opt->db_type ) . 
+my $schema = DB::Schema->connect( "dbi:". get_db_type( $opt->db_type ) . 
                               ":dbname=" . $opt->db . 
                               ':host='   . $opt->host, 
                               $opt->user, $opt->pass 
