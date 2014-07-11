@@ -10,7 +10,7 @@ my $bugs = 'https://github.com/ugexe/StocksDB/issues';
 WriteMakefile (  
     NAME           => 'DB::Schema',
     VERSION_FROM   => $pm, 
-    ABSTRACT_FROM  => $pm,
+    ABSTRACT       => '',
     AUTHOR         => 'Nick Logan <ugexe@cpan.org>',
     LICENSE        => 'perl',
     MIN_PERL_VERSION => '5.014',
@@ -24,6 +24,7 @@ WriteMakefile (
         'Try::Tiny'                            => 0,
         'Getopt::Long::Descriptive'            => 0,
         'Config::General'                      => 0,
+        'SQL::Translator'                      => 0,
     },
     BUILD_REQUIRES => {
         'Test::More'        => 0,
