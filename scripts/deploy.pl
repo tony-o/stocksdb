@@ -42,11 +42,11 @@ say   "Connecting to: "
     . "\n\tpass: "    . $opt->pass 
     . "\n\thost: "    . $opt->host;
 
-my $schema = DB::Schema->connect( "dbi:". get_db_type( $opt->db_type ) . 
+my $connect_str = "DBI:". get_db_type( $opt->db_type ) . 
                               ":dbname=" . $opt->db . 
-                              ':host='   . $opt->host, 
-                              $opt->user, $opt->pass 
-);
+                              ';host='   . $opt->host; 
+
+my $schema = DB::Schema->connect($connect_str, $opt->user, $opt->pass) or die 'Unable to connect to db.';
 
 $schema->storage->debug($opt->debug?1:0);
 
