@@ -11,6 +11,7 @@ use DB::Schema;
 use Getopt::Long::Descriptive;
 use Config::General;
 use Try::Tiny;
+use Parallel::ForkManager;
 
 my $conf    = Config::General->new(abs_path("$0/../../lib/DB/db.conf"));
 my %config  = $conf->getall;
@@ -38,7 +39,6 @@ my $connect_str = "DBI:Pg" . # get_db_type( $opt->db_type ) .
                               ":dbname=" . $opt->db . 
                               ';host='   . $opt->host; 
 my $schema = DB::Schema->connect($connect_str, $opt->user, $opt->pass) or die 'Unable to connect to db.';
-$schema->storage->sql_maker->quote_char('"');
 
 my $datadir = abs_path("$0/..");
 my $d       = DateTime->now(time_zone => 'America/New_York');
@@ -63,11 +63,25 @@ my $slimit  = 200;
 my $csv     = Text::CSV_XS->new;
 my $rs      = $schema->resultset('Stock');
 my %months  = ( 'jan' => 1, 'feb' => 2, 'mar' => 3, 'apr' => 4, 'may' => 5, 'jun' => 6, 'jul' => 7, 'aug' => 8, 'sep' => 9, 'oct' => 10, 'nov' => 11, 'dec' => 12 );
+my $fm      = Parallel::ForkManager->new(8);
 my @tmp;
+my @datas;
 
 for my $s (@symbols) {
   if (length $url . length(join ',', @tmp) . ",$s" > $ulimit || \$s == \$symbols[-1] || $idx >= $slimit) {
-    my $data  = get $url . join(',', @tmp);
+    push @datas, get($url . join(',', @tmp));
+    @tmp = ($s);
+    $idx = 1;
+  } else {
+    push @tmp, $s;
+    $idx++;
+  }
+}
+
+for my $dta (@datas) {
+  $fm->start and next;
+  try {
+    my $data = $dta;
     $data =~ s/\r//g;
     for my $line (split "\n", $data) {
       $csv->parse($line);
@@ -96,16 +110,14 @@ for my $s (@symbols) {
           } catch { $hash{$k} = undef; };
         }
       }
-      $rs->create({%hash}) or warn $hash{'s'} . ' failed to parse.';
-       
-    }
-    @tmp = ($s);
-    $idx = 1;
-  } else {
-    push @tmp, $s;
-    $idx++;
-  }
+      try {
+        $rs->create({%hash}) or warn $hash{'s'} . ' failed to parse.';
+      };
+    }     
+  };
+  $fm->finish;
 }
+$fm->wait_all_children;
 
 sub get_db_type {
     my $db = shift;
