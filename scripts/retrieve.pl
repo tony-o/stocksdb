@@ -39,6 +39,7 @@ my $connect_str = "DBI:Pg" . # get_db_type( $opt->db_type ) .
                               ":dbname=" . $opt->db . 
                               ';host='   . $opt->host; 
 my $schema = DB::Schema->connect($connect_str, $opt->user, $opt->pass) or die 'Unable to connect to db.';
+$schema->storage->sql_maker->quote_char('"');
 
 my $datadir = abs_path("$0/..");
 my $d       = DateTime->now(time_zone => 'America/New_York');
@@ -48,7 +49,7 @@ if ($d->day_of_week > 5) {
 }
 if (($d->hour_1 < 9 && $d->minute < 30) || $d->hour_1 > 16) {
   say 'time exit';
-#  exit 0;
+  exit 0;
 }
 
 my @formats = grep { /^[^#].*/ }
@@ -63,7 +64,7 @@ my $slimit  = 200;
 my $csv     = Text::CSV_XS->new;
 my $rs      = $schema->resultset('Stock');
 my %months  = ( 'jan' => 1, 'feb' => 2, 'mar' => 3, 'apr' => 4, 'may' => 5, 'jun' => 6, 'jul' => 7, 'aug' => 8, 'sep' => 9, 'oct' => 10, 'nov' => 11, 'dec' => 12 );
-my $fm      = Parallel::ForkManager->new(8);
+my $fm      = Parallel::ForkManager->new(20);
 my @tmp;
 my @datas;
 
@@ -77,6 +78,15 @@ for my $s (@symbols) {
     $idx++;
   }
 }
+
+my $cnt = 0;
+$fm->run_on_finish(sub {
+  say 'Open forks-: ' . (--$cnt);
+});
+
+$fm->run_on_start(sub {
+  say 'Open forks+: ' . (++$cnt);
+});
 
 for my $dta (@datas) {
   $fm->start and next;
@@ -111,7 +121,9 @@ for my $dta (@datas) {
         }
       }
       try {
-        $rs->create({%hash}) or warn $hash{'s'} . ' failed to parse.';
+        my $result = $rs->create({%hash});
+      } catch {
+        warn 'Insert error: ' . $_; 
       };
     }     
   };
