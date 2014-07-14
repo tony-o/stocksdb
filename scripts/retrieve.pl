@@ -4,6 +4,7 @@ use Modern::Perl;
 use LWP::Simple;
 use File::Slurp qw<slurp>;
 use Cwd 'abs_path';
+use lib abs_path("$0/../../lib");
 use DateTime;
 use List::MoreUtils qw<zip>;
 use Text::CSV_XS;
